@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <package_name>numpy</package_name>
+    <repository_url>/path/to/local/repo</repository_url>
+</configuration>

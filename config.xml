@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Обязательные параметры -->
+    <package_name>requests</package_name>
+    <repository_url>https://github.com/nxs-ultxmate/just</repository_url>
+    
+    <!-- Опциональные параметры -->
+    <test_mode>true</test_mode>
+    <package_version>2.28.0</package_version>
+    <output_filename>requests_dependencies.png</output_filename>
+    <max_depth>5</max_depth>
+    <filter_substring>http</filter_substring>
+</configuration>
