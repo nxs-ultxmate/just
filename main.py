@@ -1,69 +1,93 @@
-#!/usr/bin/env python3
-"""
-Основной модуль для анализа зависимостей NuGet пакетов
-"""
+import os
+from dependency_parser import DependencyParser
+from mermaid_generator import MermaidGenerator
+from graph_visualizer import GraphVisualizer
+from comparison_tool import ComparisonTool
 
-from dependency_analyzer import NuGetDependencyAnalyzer
-
-def analyze_packages():
-    """
-    Анализирует предопределенные пакеты и выводит их зависимости
-    """
-    # Список пакетов для анализа (пакет, версия)
-    packages_to_analyze = [
-        ("Newtonsoft.Json", "13.0.1"),
-        ("Microsoft.EntityFrameworkCore", "7.0.0"),
-        ("Serilog", "2.12.0"),
-        ("AutoMapper", "12.0.1"),
-        ("FluentValidation", "11.5.0")
-    ]
-    
-    print("=== Анализатор зависимостей NuGet пакетов ===")
-    print("Этап 2: Сбор данных о зависимостях")
-    print("\nАнализ предопределенных пакетов...")
-    print("=" * 70)
-    
-    # Создаем экземпляр анализатора
-    analyzer = NuGetDependencyAnalyzer()
-    
-    total_packages = len(packages_to_analyze)
-    processed_packages = 0
-    
-    for package_name, version in packages_to_analyze:
-        try:
-            print(f"\n\nАнализ пакета {processed_packages + 1}/{total_packages}")
-            print("-" * 50)
-            
-            # Получаем прямые зависимости
-            dependencies = analyzer.get_direct_dependencies(package_name, version)
-            
-            # Выводим результат на экран
-            analyzer.display_dependencies(package_name, version, dependencies)
-            
-            processed_packages += 1
-            
-            # Небольшая пауза между запросами чтобы не перегружать API
-            import time
-            time.sleep(1)
-            
-        except Exception as e:
-            print(f"\nОшибка при анализе пакета {package_name}: {str(e)}")
-            processed_packages += 1
-            continue
-    
-    print("\n" + "=" * 70)
-    print(f"Анализ завершен! Обработано пакетов: {processed_packages}/{total_packages}")
+def ensure_directory(directory: str):
+    """Создать директорию если не существует"""
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def main():
-    """
-    Основная функция приложения
-    """
-    try:
-        analyze_packages()
-    except KeyboardInterrupt:
-        print("\n\nПрограмма прервана пользователем.")
-    except Exception as e:
-        print(f"\nПроизошла критическая ошибка: {str(e)}")
+    print("🚀 Запуск визуализатора графа зависимостей")
+    
+    # Создаем необходимые директории
+    ensure_directory('examples')
+    ensure_directory('mermaid_files')
+    
+    # Инициализируем компоненты
+    parser = DependencyParser()
+    mermaid_gen = MermaidGenerator(parser)
+    visualizer = GraphVisualizer(parser)
+    comparer = ComparisonTool(parser)
+    
+    print("📦 Анализ установленных пакетов...")
+    parser.build_dependency_graph()
+    
+    # Выбираем пакеты для демонстрации
+    demo_packages = ['requests', 'numpy', 'matplotlib']
+    
+    print(f"\n🎯 Демонстрационные пакеты: {', '.join(demo_packages)}")
+    
+    for i, package in enumerate(demo_packages, 1):
+        print(f"\n{'='*50}")
+        print(f"ПАКЕТ {i}: {package}")
+        print(f"{'='*50}")
+        
+        # Генерируем Mermaid диаграмму
+        mermaid_code = mermaid_gen.generate_mermaid_graph(package)
+        mermaid_file = f"mermaid_files/{package}_dependencies.mmd"
+        mermaid_gen.save_mermaid_to_file(mermaid_code, mermaid_file)
+        
+        print(f"📊 Mermaid диаграмма создана: {mermaid_file}")
+        
+        # Создаем визуализацию
+        png_file = f"examples/example{i}.png"
+        visualizer.visualize_package_dependencies(package, png_file)
+        
+        # Сравниваем с официальными инструментами
+        print(f"\n🔍 Сравнение с официальными инструментами...")
+        
+        our_graph = visualizer.create_networkx_graph(package)
+        official_graph = comparer.create_official_graph(package)
+        
+        if official_graph.number_of_nodes() > 0:
+            comparison_result = comparer.compare_graphs(our_graph, official_graph)
+            comparer.print_comparison_report(comparison_result, package)
+            
+            # Создаем сравнительную визуализацию
+            comparison_file = f"examples/comparison_{package}.png"
+            visualizer.create_comparison_visualization(
+                package, our_graph, official_graph, comparison_file
+            )
+        else:
+            print("⚠️  Официальные данные недоступны для сравнения")
+    
+    print(f"\n✅ Визуализация завершена!")
+    print(f"📁 Результаты сохранены в папках 'examples' и 'mermaid_files'")
+    
+    # Сохраняем сводный отчет
+    save_summary_report(demo_packages)
+
+def save_summary_report(packages: list):
+    """Сохранить сводный отчет"""
+    with open('visualization_report.md', 'w', encoding='utf-8') as f:
+        f.write("# Отчет по визуализации графа зависимостей\n\n")
+        f.write("## Демонстрационные пакеты:\n")
+        for i, pkg in enumerate(packages, 1):
+            f.write(f"{i}. **{pkg}**\n")
+        
+        f.write("\n## Созданные файлы:\n")
+        f.write("- PNG изображения графов в папке `examples/`\n")
+        f.write("- Mermaid диаграммы в папке `mermaid_files/`\n")
+        f.write("- Сравнительные визуализации в папке `examples/`\n")
+        f.write("- Этот отчет в файле `visualization_report.md`\n")
+        
+        f.write("\n## Инструкция по использованию Mermaid диаграмм:\n")
+        f.write("1. Скопируйте содержимое .mmd файлов\n")
+        f.write("2. Вставьте в поддерживаемый редактор Mermaid (GitHub, Mermaid Live Editor)\n")
+        f.write("3. Получите визуальное представление графа\n")
 
 if __name__ == "__main__":
     main()
